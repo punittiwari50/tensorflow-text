@@ -32,34 +32,36 @@ function is_macos() {
 # Remove .bazelrc if it already exist
 [ -e .bazelrc ] && rm .bazelrc
 
-if [[ $(pip show tensorflow) == *tensorflow* ]] ||
-   [[ $(pip show tensorflow-macos) == *tensorflow-macos* ]] ||
-   [[ $(pip show tf-nightly) == *tf-nightly* ]]; then
-  echo 'Using installed tensorflow.'
-else
-  echo 'Installing tensorflow.'
-  if [[ "$IS_NIGHTLY" == "nightly" ]]; then
-    pip install tf-nightly
-  else
-    pip install tensorflow==2.18.0
-  fi
-fi
-
-# Copy the current bazelversion of TF.
-curl https://raw.githubusercontent.com/tensorflow/tensorflow/master/.bazelversion -o .bazelversion
-
-# Copy the building configuration of TF.
-curl https://raw.githubusercontent.com/tensorflow/tensorflow/master/.bazelrc -o .bazelrc
-# This line breaks Windows builds, so we remove it.
-sed -i -e 's/build --noincompatible_remove_legacy_whole_archive//' .bazelrc
-
-write_to_bazelrc "build:manylinux2014 --config=release_cpu_linux"
-
+# Don't install tensorflow locally.
 if (which python3) | grep -q "python3"; then
   installed_python="python3"
 elif (which python) | grep -q "python"; then
   installed_python="python"
 fi
+
+# if [[ $($installed_python -m pip show tensorflow) == *tensorflow* ]] ||
+#    [[ $($installed_python -m pip show tensorflow-macos) == *tensorflow-macos* ]] ||
+#    [[ $($installed_python -m pip show tf-nightly) == *tf-nightly* ]]; then
+#   echo 'Using installed tensorflow.'
+# else
+#   echo 'Installing tensorflow.'
+#   if [[ "$IS_NIGHTLY" == "nightly" ]]; then
+#     $installed_python -m pip install --no-deps tf-nightly
+#   else
+#     $installed_python -m pip install --no-deps tensorflow==2.20
+#   fi
+# fi
+
+# Copy the current bazelversion of TF.
+curl https://raw.githubusercontent.com/tensorflow/tensorflow/v2.20.0/.bazelversion -o .bazelversion
+
+# Copy the building configuration of TF.
+curl https://raw.githubusercontent.com/tensorflow/tensorflow/v2.20.0/.bazelrc -o .bazelrc
+# This line breaks Windows builds, so we remove it.
+sed -i -e 's/build --noincompatible_remove_legacy_whole_archive//' .bazelrc
+
+write_to_bazelrc "build:manylinux2014 --config=release_cpu_linux"
+write_to_bazelrc "test --test_env=TF_USE_LEGACY_KERAS=1"
 
 if [ -z "$HERMETIC_PYTHON_VERSION" ]; then
   if [ -n "$PY_VERSION" ]; then
@@ -70,13 +72,10 @@ if [ -z "$HERMETIC_PYTHON_VERSION" ]; then
 fi
 export HERMETIC_PYTHON_VERSION
 
-echo "TF_VERSION=$TF_VERSION"
-REQUIREMENTS_EXTRA_FLAGS="--upgrade"
-if [[ "$TF_VERSION" == *"rc"* ]]; then
-  REQUIREMENTS_EXTRA_FLAGS="$REQUIREMENTS_EXTRA_FLAGS --pre"
+# Only auto-upgrade requirements for nightly.
+if [[ "$IS_NIGHTLY" == "nightly" ]]; then
+  bazel run //oss_scripts/pip_package:requirements.update -- --upgrade
 fi
-
-bazel run //oss_scripts/pip_package:requirements.update -- $REQUIREMENTS_EXTRA_FLAGS
 
 TF_ABIFLAG=$(bazel run //oss_scripts/pip_package:tensorflow_build_info -- abi)
 SHARED_LIBRARY_NAME="libtensorflow_framework.so.2"
