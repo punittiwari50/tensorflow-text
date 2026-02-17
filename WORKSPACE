@@ -101,6 +101,9 @@ conditional_http_archive(
     nightly_urls = [
         "https://github.com/bazelbuild/rules_python/releases/download/0.40.0/rules_python-0.40.0.tar.gz",
     ],
+    files = {"//third_party/rules_python:versions.bzl": "python/versions.bzl"},
+    patches = ["//third_party/rules_python:python_kind.patch"],
+    patch_args = ["-p1"],
 )
 
 load("@rules_python//python:repositories.bzl", "py_repositories")
@@ -110,7 +113,7 @@ load("@rules_python//python:repositories.bzl", "python_register_toolchains")
 
 python_register_toolchains(
     name = "python",
-    python_version = "3.13",
+    python_version = "3.14",
     # toolchain_prefixes = [], # default
 )
 
@@ -197,12 +200,12 @@ py_deps_profile(
     name = "release_or_nightly",
     deps_map = {
         "tensorflow": [
-            "tf-nightly",
+            "tensorflow",
             "tf_headers",
             "tf_header_lib",
             "libtensorflow_framework",
         ],
-        "tf-keras": ["tf-keras-nightly"],
+        "tf-keras": ["keras-nightly"],
     },
     pip_repo_name = "pypi",
     requirements_in = "//oss_scripts/pip_package:requirements.in",

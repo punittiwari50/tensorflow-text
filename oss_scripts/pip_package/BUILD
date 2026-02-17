@@ -13,10 +13,24 @@ compile_pip_requirements(
         "--build-isolation",
         "--rebuild",
     ],
+    requirements_in = "requirements.in",
+    requirements_txt = "requirements_lock_3_14.txt",
     generate_hashes = True,
-    requirements_in = "@release_or_nightly//:requirements.in",
-    requirements_txt = REQUIREMENTS,
+    data = [
+        "tensorflow-2.21.0.dev0+selfbuilt-cp314-cp314-linux_x86_64.whl",
+        "dm_tree-0.1.9-cp314-cp314-linux_x86_64.whl",
+        "promise-2.3-py3-none-any.whl",
+        "libclang-19.1.3-py2.py3-none-any.whl",
+    ],
 )
+
+exports_files([
+    "requirements.in",
+    "tensorflow-2.21.0.dev0+selfbuilt-cp314-cp314-linux_x86_64.whl",
+    "dm_tree-0.1.9-cp314-cp314-linux_x86_64.whl",
+    "promise-2.3-py3-none-any.whl",
+    "libclang-19.1.3-py2.py3-none-any.whl",
+])
 
 py_binary(
     name = "tensorflow_build_info",
