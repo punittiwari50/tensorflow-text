@@ -20,9 +20,18 @@ def _conditional_http_archive_impl(ctx):
   )
   if ctx.attr.build_file:
       ctx.file("BUILD", ctx.read(ctx.attr.build_file))
+  if ctx.attr.files:
+      for src, dest in ctx.attr.files.items():
+          ctx.execute(["rm", "-f", dest])
+          ctx.symlink(src, dest)
+  strip = 1
+  if ctx.attr.patch_args:
+      for arg in ctx.attr.patch_args:
+          if arg.startswith("-p"):
+              strip = int(arg[2:])
   if ctx.attr.patches:
       for patch in ctx.attr.patches:
-          ctx.patch(patch, strip=1)
+          ctx.patch(patch, strip=strip)
 
 conditional_http_archive = repository_rule(
     implementation = _conditional_http_archive_impl,
@@ -35,5 +44,7 @@ conditional_http_archive = repository_rule(
         "nightly_sha256": attr.string(),
         "nightly_strip_prefix": attr.string(),
         "nightly_urls": attr.string_list(),
+        "patch_args": attr.string_list(),
+        "files": attr.label_keyed_string_dict(),
     },
 )

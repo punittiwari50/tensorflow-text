@@ -62,6 +62,7 @@ sed -i -e 's/build --noincompatible_remove_legacy_whole_archive//' .bazelrc
 
 write_to_bazelrc "build:manylinux2014 --config=release_cpu_linux"
 write_to_bazelrc "test --test_env=TF_USE_LEGACY_KERAS=1"
+write_to_bazelrc "build --experimental_repo_remote_exec"
 
 if [ -z "$HERMETIC_PYTHON_VERSION" ]; then
   if [ -n "$PY_VERSION" ]; then
