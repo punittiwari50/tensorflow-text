@@ -1,0 +1,12 @@
+--- a/python/private/python_repository.bzl
++++ b/python/private/python_repository.bzl
+@@ -102,6 +102,9 @@
+         "zstd_version": attr.string(
+             default = "1.5.2",
+         ),
++        "python_version_kind": attr.string(
++            doc = "The kind of python version used.",
++        ),
+         "_rule_name": attr.string(default = "python_repository"),
+     },
+     environ = [REPO_DEBUG_ENV_VAR],
