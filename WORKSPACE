@@ -10,6 +10,15 @@ http_archive(
     urls = ["https://github.com/bazelbuild/apple_support/releases/download/1.24.5/apple_support.1.24.5.tar.gz"],
 )
 
+http_archive(
+    name = "bazel_skylib",
+    sha256 = "bc283cdfcd526a52c3201279cda4bc298652efa898b10b4db0837dc51652756f",
+    urls = [
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.7.1/bazel-skylib-1.7.1.tar.gz",
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.7.1/bazel-skylib-1.7.1.tar.gz",
+    ],
+)
+
 custom_http_archive(
     name = "icu",
     exclude = [
@@ -22,8 +31,8 @@ custom_http_archive(
     sha256 = "e424ba5282d95ad38b52639a08fb82164f0b0cbd7f17b53ae16bf14f8541855f",
     strip_prefix = "icu-release-77-1",
     urls = [
-        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/unicode-org/icu/archive/release-77-1.zip",
         "https://github.com/unicode-org/icu/archive/release-77-1.zip",
+        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/unicode-org/icu/archive/release-77-1.zip",
     ],
 )
 
@@ -56,6 +65,17 @@ http_archive(
     ],
 )
 
+
+
+
+
+http_archive(
+    name = "rules_cc",
+    urls = ["https://github.com/bazelbuild/rules_cc/releases/download/0.0.17/rules_cc-0.0.17.tar.gz"],
+    sha256 = "abc605dd850f813bb37004b77db20106a19311a96b2da1c92b789da529d28fe1",
+    strip_prefix = "rules_cc-0.0.17",
+)
+
 http_archive(
     name = "io_bazel_rules_closure",
     sha256 = "5b00383d08dd71f28503736db0500b6fb4dda47489ff5fc6bed42557c07c6ba9",
@@ -66,15 +86,77 @@ http_archive(
     ],
 )
 
-http_archive(
+load("//third_party/bazel:conditional_http_archive.bzl", "conditional_http_archive")
+
+# Update rules_python to a version that supports Python 3.14
+conditional_http_archive(
+    name = "rules_python",
+    sha256 = "690e0141724abb568267e003c7b6d9a54925df40c275a870a4d934161dc9dd53",
+    strip_prefix = "rules_python-0.40.0",
+    urls = [
+        "https://github.com/bazelbuild/rules_python/releases/download/0.40.0/rules_python-0.40.0.tar.gz",
+    ],
+    nightly_sha256 = "690e0141724abb568267e003c7b6d9a54925df40c275a870a4d934161dc9dd53",
+    nightly_strip_prefix = "rules_python-0.40.0",
+    nightly_urls = [
+        "https://github.com/bazelbuild/rules_python/releases/download/0.40.0/rules_python-0.40.0.tar.gz",
+    ],
+)
+
+load("@rules_python//python:repositories.bzl", "py_repositories")
+py_repositories()
+
+load("@rules_python//python:repositories.bzl", "python_register_toolchains")
+
+python_register_toolchains(
+    name = "python",
+    python_version = "3.13",
+    # toolchain_prefixes = [], # default
+)
+
+# This creates a bridge for the legacy scripts
+bind(
+    name = "python_interpreter",
+    actual = "@python_3_14_host//:python",
+)
+
+# Explicitly register the 3.14 hermetic toolchain if possible/needed later,
+# but for now we stick to 3.13 as the base and let hermetic setup handle 3.14.
+
+
+conditional_http_archive(
     name = "org_tensorflow",
-    patch_args = ["-p1"],
-    patches = ["//third_party/tensorflow:tensorflow.core.BUILD.patch"],
+    patches = ["//third_party/tensorflow:tensorflow.core.BUILD.patch", "//third_party/tensorflow:cuda_redist_versions.patch"],
     sha256 = "213edf03ac7c4e74d8eb2074216ae8c8ae4f325c6bc22efd16cfdeed2073bd66",
     strip_prefix = "tensorflow-2.20.0",
     urls = [
+        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/tensorflow/tensorflow/archive/refs/tags/v2.20.0.zip",
         "https://github.com/tensorflow/tensorflow/archive/refs/tags/v2.20.0.zip",
     ],
+    nightly_strip_prefix = "tensorflow-master",
+    nightly_urls = [
+         "https://github.com/tensorflow/tensorflow/archive/master.zip",
+    ],
+)
+
+conditional_http_archive(
+    name = "xla",
+    nightly_strip_prefix = "xla-main",
+    nightly_urls = [
+        "https://github.com/openxla/xla/archive/main.zip",
+    ],
+    patches = ["//third_party/tensorflow:cuda_redist_versions_xla.patch"],
+    urls = [],
+)
+
+conditional_http_archive(
+    name = "local_xla",
+    nightly_strip_prefix = "xla-main",
+    nightly_urls = [
+        "https://github.com/openxla/xla/archive/main.zip",
+    ],
+    patches = ["//third_party/tensorflow:cuda_redist_versions_xla.patch"],
+    urls = [],
 )
 
 http_archive(
@@ -139,8 +221,10 @@ python_init_repositories(
         "3.11": "//oss_scripts/pip_package:requirements_lock_3_11.txt",
         "3.12": "//oss_scripts/pip_package:requirements_lock_3_12.txt",
         "3.13": "//oss_scripts/pip_package:requirements_lock_3_13.txt",
+        "3.14": "//oss_scripts/pip_package:requirements_lock_3_14.txt",
     },
 )
+
 
 load("@org_tensorflow//third_party/py:python_init_toolchains.bzl", "python_init_toolchains")
 
@@ -232,4 +316,7 @@ load(
     "nccl_configure",
 )
 
-nccl_configure(name = "local_config_nccl")
+
+load("//third_party/nvshmem:dummy_configure.bzl", "dummy_nvshmem_configure")
+
+dummy_nvshmem_configure(name = "local_config_nvshmem")

@@ -68,6 +68,8 @@ def main():
 
   print(f"=== Destination directory: {output_path}")
   print(f"=== Current directory: {pathlib.Path.cwd()}")
+  print(f"=== Running with Python: {sys.version}")
+  print(f"=== Python executable: {sys.executable}")
 
   # Verify bazel-bin exists
   if not pathlib.Path("bazel-bin/tensorflow_text").exists():
@@ -119,7 +121,8 @@ def main():
     )
 
     # Prepare Python execution
-    python_bin = sys.executable  # Uses the currently running python
+    python_bin = os.environ.get("PYTHON_BIN_PATH", sys.executable)
+    print(f"=== Using Python interpreter: {python_bin}")
 
     # Build pip package
     build_cmd = [
